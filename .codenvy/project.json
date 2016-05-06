@@ -1,0 +1,1 @@
+{"mixinTypes":[],"builders":{"configs":{},"default":"maven"},"runners":{"configs":{"system:/java/standalone/simple/cli":{"ram":1000,"variables":{},"options":{}}},"default":"system:/java/standalone/simple/cli"},"description":"Client that retrieves objects from Open-Epic using Hapi-FHIR api.","type":"maven","attributes":{"languageVersion":["1.6"],"language":["java"]}}
