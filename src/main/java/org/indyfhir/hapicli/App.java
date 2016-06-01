@@ -44,7 +44,7 @@ public class App {
                 App app = new App();
 
                 
-                if ( "1".equals(cmdCall)) app.retrieveAndDumpObservation(fhirContext, serverBaseEpic, "Tbt3KuCY0B5PSrJvCu2j-PlK.aiHsu2xUjUM8bWpetXoB", "http://loinc.org|8310-5", true); //"5149");
+                if ( "1".equals(cmdCall)) app.retrieveAndDumpObservation(fhirContext, serverBaseEpic, "Tbt3KuCY0B5PSrJvCu2j-PlK.aiHsu2xUjUM8bWpetXoB", "http://loinc.org|3094-0", true); //"5149");
                 if ( "2".equals(cmdCall)) app.retrieveAndDumpObservation(fhirContext, serverBaseCerner, "2744010", "http://loinc.org|3094-0", true);
                 if ( "3".equals(cmdCall)) app.retrieveAndDumpMedications(fhirContext, serverBaseEpic, "Tbt3KuCY0B5PSrJvCu2j-PlK.aiHsu2xUjUM8bWpetXoB");
                 if ( "4".equals(cmdCall)) app.retrieveAndDumpMedications(fhirContext, serverBaseCerner, "2744010");
@@ -79,7 +79,7 @@ public class App {
                 if ( split ) {
                     query.and(Observation.CODE.exactly().systemAndCode(sysCode[0], sysCode[1]));
                 } else {
-//                    query.and(Observation.CODE.exactly().code(code));
+                    query.and(Observation.CODE.exactly().code(code));
                 }
                                     
                 Bundle bundle = query.execute();                     // Execute the search! Returns a Bundle Object. A read() would return just that resource instance.
