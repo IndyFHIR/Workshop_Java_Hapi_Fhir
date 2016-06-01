@@ -32,7 +32,7 @@ docker build -t workshop_java_hapifhir .
 
 ## Running Docker Image
 ```sh
-docker run -i workshop_java_hapifhir .
+winpty docker run -i workshop_java_hapifhir 
 ```
 
 

@@ -92,7 +92,7 @@ public class App {
             // Create the Client for a target resource provider.
             IGenericClient client = fhirContext.newRestfulGenericClient(serverURL);
             
-//            client.setEncoding(EncodingEnum.JSON);
+            client.setEncoding(EncodingEnum.JSON);
             
             // Retrieve Observations.
             Bundle bundle = client
