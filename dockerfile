@@ -25,6 +25,8 @@ RUN git clone https://github.com/IndyFHIR/Workshop_Java_Hapi_Fhir.git
 # update current folder to checked out project folder
 WORKDIR Workshop_Java_Hapi_Fhir
 
+RUN git pull
+
 # list files in current folder
 RUN ls -l
 
