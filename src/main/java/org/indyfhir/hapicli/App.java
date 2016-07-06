@@ -5,14 +5,21 @@ import java.util.Date;
 import ca.uhn.fhir.context.FhirContext;
 import ca.uhn.fhir.context.FhirVersionEnum;
 import ca.uhn.fhir.model.api.IDatatype;
+import ca.uhn.fhir.model.api.IResource;
+import ca.uhn.fhir.model.dstu2.composite.CodeableConceptDt;
 import ca.uhn.fhir.model.dstu2.composite.QuantityDt;
 import ca.uhn.fhir.model.dstu2.composite.ResourceReferenceDt;
+import ca.uhn.fhir.model.dstu2.resource.Appointment;
+import ca.uhn.fhir.model.dstu2.resource.Appointment.Participant;
 import ca.uhn.fhir.model.dstu2.resource.Bundle;
 import ca.uhn.fhir.model.dstu2.resource.Bundle.Entry;
-import ca.uhn.fhir.model.dstu2.resource.Medication;
 import ca.uhn.fhir.model.dstu2.resource.MedicationOrder;
 import ca.uhn.fhir.model.dstu2.resource.Observation;
+import ca.uhn.fhir.model.dstu2.resource.Schedule;
+import ca.uhn.fhir.model.dstu2.resource.Slot;
+import ca.uhn.fhir.model.dstu2.valueset.ParticipantRequiredEnum;
 import ca.uhn.fhir.model.primitive.DateTimeDt;
+import ca.uhn.fhir.rest.api.MethodOutcome;
 import ca.uhn.fhir.rest.client.IGenericClient;
 import ca.uhn.fhir.rest.gclient.IQuery;
 import ca.uhn.fhir.rest.server.EncodingEnum;
@@ -48,10 +55,157 @@ public class App {
                 if ( "2".equals(cmdCall)) app.retrieveAndDumpObservation(fhirContext, serverBaseCerner, "2744010", "http://loinc.org|3094-0", true);
                 if ( "3".equals(cmdCall)) app.retrieveAndDumpMedications(fhirContext, serverBaseEpic, "Tbt3KuCY0B5PSrJvCu2j-PlK.aiHsu2xUjUM8bWpetXoB");
                 if ( "4".equals(cmdCall)) app.retrieveAndDumpMedications(fhirContext, serverBaseCerner, "2744010");
+                if ( "5".equals(cmdCall)) app.addAppointmentEpic(fhirContext, serverBaseEpic, "T3Mz3KLBDVXXgaRoee3EKAAB");
 //                if ( "5".equals(cmdCall)) app.retrieveAndDumpConditions(fhirContext, serverBaseEpic, "Tbt3KuCY0B5PSrJvCu2j-PlK.aiHsu2xUjUM8bWpetXoB");
 //                if ( "6".equals(cmdCall)) app.retrieveAndDumpConditions(fhirContext, serverBaseEpic, "Tbt3KuCY0B5PSrJvCu2j-PlK.aiHsu2xUjUM8bWpetXoB");
         }
 
+        protected void addAppointmentEpic(FhirContext fhirContext, String serverURL, String patientId) {
+
+        	/*
+        			{
+						  "resourceType": "Appointment",
+						  "id": "",
+						  "status": "proposed",
+						  "reason": {
+						    "text": "Regular checkup"
+						  },
+						  "description": "",
+						  "slot": [
+						    {
+						      "reference": "[SlotIdentifier]"
+						    }
+						  ],
+						  "comment": "Regular yearly visit",
+						  "participant": [
+						    {
+						      "actor": {
+						        "reference": "Tbt3KuCY0B5PSrJvCu2j-PlK.aiHsu2xUjUM8bWpetXoB"
+						      },
+						      "required": "required"
+						    },
+						    {
+						      "actor": {
+						        "reference": "T3Mz3KLBDVXXgaRoee3EKAAB"
+						      },
+						      "required": "required"
+						    },
+						    {
+						      "actor": {
+						        "reference": "TESU2bZxkH4ZTTEZCHK.p1wB"
+						      },
+						      "required": "required"
+						    }
+						  ]
+					}
+			*/ 
+
+            Schedule schedule = lookupSchedule(fhirContext, serverURL, patientId);
+            
+            Slot slot = lookupSlot(fhirContext, serverURL, patientId, schedule);
+        	
+            IGenericClient client = fhirContext.newRestfulGenericClient(serverURL);
+            
+            client.setEncoding(EncodingEnum.JSON);
+            
+            Appointment apt = new Appointment();
+            
+    		Participant patient = new Participant();
+    		patient.setActor(new ResourceReferenceDt(patientId));
+    		patient.setRequired(ParticipantRequiredEnum.REQUIRED);
+            apt.getParticipant().add(patient);
+            
+            Participant doctor1 = new Participant();
+            doctor1.setActor(new ResourceReferenceDt("T3Mz3KLBDVXXgaRoee3EKAAB"));
+    		doctor1.setRequired(ParticipantRequiredEnum.REQUIRED);
+            apt.getParticipant().add(doctor1);
+            
+            Participant doctor2 = new Participant();
+            doctor2.setActor(new ResourceReferenceDt("TESU2bZxkH4ZTTEZCHK.p1wB"));
+    		doctor2.setRequired(ParticipantRequiredEnum.OPTIONAL);
+            apt.getParticipant().add(doctor1);
+
+            apt.setComment("Regular yearly visit");
+            CodeableConceptDt reasonCode = new CodeableConceptDt();
+            reasonCode.setText("Regular checkup");
+            apt.setReason(reasonCode);
+            
+            apt.getSlot().add(new ResourceReferenceDt(slot.getId().getIdPart()));
+            
+            MethodOutcome outcome = client.create().resource(apt).execute();
+            System.out.println("Appointment Result Created = " + outcome.getCreated());
+        }
+
+        
+		/**
+		 * @param fhirContext
+		 * @param serverURL
+		 * @param patientId
+		 */
+		protected Slot lookupSlot(FhirContext fhirContext, String serverURL, String patientId, Schedule schedule) {
+			IGenericClient client = fhirContext.newRestfulGenericClient(serverURL);
+            
+            client.setEncoding(EncodingEnum.JSON);
+            
+            Bundle slotBundle = 
+            			client
+            			.search()
+            			.forResource(Slot.class)
+            			.and(Slot.SCHEDULE.hasId(schedule.getId().getIdPart()))
+            			.returnBundle(Bundle.class)
+            			.execute();
+            
+            
+            Slot slot = null;
+            
+            for (Entry entry : slotBundle.getEntry()) {
+            	IResource slotRes = entry.getResource();
+            	if ( slotRes instanceof Slot) {
+            		slot = (Slot)slotRes;
+            		System.out.println("slot found = " + slot.getId().getIdPart());
+            		break;
+            	}
+            }
+            
+            return slot;
+		}
+
+		
+		
+		/**
+		 * @param fhirContext
+		 * @param serverURL
+		 * @param patientId
+		 */
+		protected Schedule lookupSchedule(FhirContext fhirContext, String serverURL, String patientId) {
+			IGenericClient client = fhirContext.newRestfulGenericClient(serverURL);
+            
+            client.setEncoding(EncodingEnum.JSON);
+            
+            Bundle scheduleBundle = client
+            			.search()
+            			.forResource(Schedule.class)
+            			.where(Schedule.ACTOR.hasId(patientId))
+            			.and(Schedule.TYPE.exactly().code("1004"))
+            			.and(Schedule.DATE.exactly().day("20160718"))
+            			.returnBundle(Bundle.class)
+            			.execute();
+            
+            
+            Schedule schedule = null;
+            
+            for (Entry entry : scheduleBundle.getEntry()) {
+            	IResource scheduleRes = entry.getResource();
+            	if ( scheduleRes instanceof Schedule) {
+            		schedule = (Schedule)scheduleRes;
+            		System.out.println("schedule found = " + schedule.getId().getIdPart());
+            		break;
+            	}
+            }
+            
+            return schedule;
+		}
+        
         protected void retrieveAndDumpObservation(FhirContext fhirContext, String serverURL, String patientId, String code, boolean split) {
 
                 // Create the Client for a target resource provider.
